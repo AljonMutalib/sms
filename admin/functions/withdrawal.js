@@ -7,3 +7,5 @@ function validateQuantity(input) {
         input.value = availableQty; // Reset to max available quantity
     }
 }
+
+

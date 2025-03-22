@@ -13,7 +13,7 @@ header("Pragma: no-cache");
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
     $withdrawal_id = $_POST['withdrawal_id'];
     
-    $sqlWithdrawal = $conn->prepare("SELECT ID, division, office, rcc, ris_no, sai_no, purpose FROM tbl_withdrawals WHERE ID = ?");
+    $sqlWithdrawal = $conn->prepare("SELECT ID, division, office, rcc, ris_no, sai_no, purpose, stat FROM tbl_withdrawals WHERE ID = ?");
     $sqlWithdrawal->bind_param("i", $withdrawal_id);
     $sqlWithdrawal->execute();
     $result = $sqlWithdrawal->get_result()->fetch_assoc();   
@@ -46,26 +46,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
             </div>
             <div class="row wrapper border-bottom white-bg page-heading">
                 <div class="col-lg-10">
-                    <h2>New Withdrawal Form</h2>
+                    <h2>Withdrawal Request Form</h2>
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item">
                             <a href="index.html">Dashboard</a>
                         </li>
                         <li class="breadcrumb-item active">
-                            <strong>New Withdrawal</strong>
+                            <strong>Withdrawal</strong>
                         </li>
                     </ol>
                 </div>
                 <div class="col-lg-2 d-flex justify-content-center align-items-center">
                     <div class="text-center">
                         <a data-toggle="modal" class="btn btn-outline btn-success" href="#supply-modal-table"><i class="fa fa-cart-plus"></i></a>
-                        <a class="btn btn-outline btn-primary" href="#" id="saveWithdrawalBtn" onclick="saveWithdrawal()"><i class="fa fa-save"></i></a>
+                        <a class="btn btn-outline btn-primary" href="#" id="saveWithdrawalBtn" onclick="saveWithdrawal(<?php echo  $result['ID']?>)"><i class="fa fa-save"></i></a>
                     </div>
                 </div>
             </div>
             <div class="wrapper wrapper-content animated fadeInRight">
                 <div class="row">
-                    <div class="col-lg-4">
+                    <div class="col-lg-12">
                         <div class="ibox ">
                             <div class="ibox-title">
                                 <h5>Requisition Details</h5>
@@ -78,40 +78,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                             <div class="ibox-content">
                                 <form id="withdrawalForm">
                                     <div class="row">
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Employee Name</label>
+                                                <input type="text" class="form-control" value="<?php echo  $result['division']?>" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Division</label>
                                                 <input type="text" class="form-control" value="<?php echo  $result['division']?>" readonly>
                                             </div>
                                         </div>
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Office</label>
                                                 <input type="text" class="form-control" value="<?php echo  $result['office']?>" readonly>
                                             </div>
                                         </div>
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Responsibility Center Code</label>
                                                 <input type="text" class="form-control" value="<?php echo  $result['rcc']?>" readonly>
                                             </div>
                                         </div>
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
-                                                <label>Responsibility Center Code</label>
+                                                <label>RIS Number</label>
                                                 <input type="text" class="form-control" value="<?php echo  $result['ris_no']?>" readonly>
                                             </div>
                                         </div>
-                                        <div class="col-md-12">
+                                        <div class="col-md-4">
                                             <div class="form-group">
-                                                <label>Responsibility Center Code</label>
+                                                <label>SAI Number</label>
                                                 <input type="text" class="form-control" value="<?php echo  $result['sai_no']?>" readonly>
                                             </div>
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
                                                 <label>Purpose</label>
-                                                <textarea class="form-control" rows="5" placeholder="Enter purpose" readonly><?php echo  $result['purpose']?></textarea>
+                                                <textarea class="form-control" rows="3" placeholder="Enter purpose" readonly><?php echo  $result['purpose']?></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -119,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-8">
+                    <div class="col-lg-12">
                         <div class="ibox ">
                             <div class="ibox-title">
                                 <h5>Withdrawal</h5>
@@ -131,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                             </div>
                             <div class="ibox-content">
                                 <div class="table-responsive">
-                                    <table class="table table-striped table-bordered table-hover dataTables-withdrawal" >
+                                    <table class="table table-striped table-bordered table-hover dataTables-withdrawal-issuance" >
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -141,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                                                 <th>Quantity</th>
                                                 <th>Requisition</th>
                                                 <th width="12%">Issuance</th>
+                                                <th>Remarks</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -151,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                                                     s.unit, 
                                                     s.description, 
                                                     s.qty AS available_qty, 
-                                                    w.requisition_qty, w.issuance_qty
+                                                    w.requisition_qty, w.issuance_qty, w.issuance_remarks
                                                 FROM tbl_withdrawals_dtl w
                                                 INNER JOIN tbl_supplies s ON w.stock_no = s.stock_no
                                                 WHERE w.withdrawal_ID = ?";
@@ -159,10 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                                                 $stmt = $conn->prepare($sql);
                                                 $stmt->bind_param("i", $withdrawal_id);
                                                 $stmt->execute();
-                                                $result = $stmt->get_result();
+                                                $results = $stmt->get_result();
 
                                                 $count = 1;
-                                                while ($row = $result->fetch_assoc()) {
+                                                while ($row = $results->fetch_assoc()) {
+                                                    if($result['stat']==1){
+                                                        $readonly = 'readonly';
+                                                    }
                                                     echo "<tr>";
                                                     echo "<td>" . $count++ . "</td>";
                                                     echo "<td>" . htmlspecialchars($row['stock_no']) . "</td>";
@@ -170,7 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                                                     echo "<td>" . htmlspecialchars($row['description']) . "</td>";
                                                     echo "<td align='center'>" . htmlspecialchars($row['available_qty']) . "</td>";
                                                     echo "<td align='center'>" . htmlspecialchars($row['requisition_qty']) . "</td>";
-                                                    echo "<td align='center'><input type='number' class='form-control issuance-input' data-id='" . $row['withdrawal_id'] . "' data-available='" . $row['available_qty'] . "' value='" . htmlspecialchars($row['issuance_qty']) . "' value='0' onkeyup='validateQuantity(this)'></td>";
+                                                    if($result['stat']==1){
+                                                        echo "<td align='center'>" . htmlspecialchars($row['issuance_qty']) . "</td>";
+                                                        echo "<td>" . htmlspecialchars($row['issuance_remarks']) . "</td>";
+                                                    }else{
+                                                        echo "<td align='center'><input type='number' class='form-control issuance-input' data-id='" . $row['withdrawal_id'] . "' data-available='" . $row['available_qty'] . "' value='" . htmlspecialchars($row['issuance_qty']) . "' value='0' onkeyup='validateQuantity(this)'></td>";
+                                                        echo "<td align='center'><input type='text' class='form-control remarks-input' data-id='" . $row['withdrawal_id'] . "' data-available='" . $row['available_qty'] . "' value='" . htmlspecialchars($row['issuance_remarks']) . "' value='0' onkeyup='validateRemarks(this)'></td>";
+                                                    }
                                                     echo "</tr>";
                                                 }
                                             ?>
@@ -199,23 +215,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
     <script src="functions/withdrawal.js"></script>
     <script>
         $(document).ready(function(){
-            $('.dataTables-withdrawal').DataTable({
+            $('.dataTables-withdrawal-issuance').DataTable({
                 pageLength: 10,
                 responsive: true,
             });
 
         });
-        function saveWithdrawal() {
-            let purpose = $('#purpose').val().trim();
-            if (purpose === '') {
-                alert('Purpose is required.');
-                $('#purpose').focus();
-                return;
-            }
+        function saveWithdrawal(withdrawal_id) {
             $.ajax({
                 type: 'POST',
-                url: 'controls/add-withdrawal.php',
-                data: $('#withdrawalForm').serialize(),
+                url: 'controls/update_withdrawal.php',
+                data: {withdrawal_id: withdrawal_id},
                 dataType: 'json', // Ensure response is treated as JSON
                 success: function(response) {
                     if (response.success) {
@@ -261,6 +271,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['withdrawal_id'])) {
                     }
                 });
             });
+        });
+
+        $(document).ready(function() {
+            $(".remarks-input").on("focusout", function() {
+                let input = $(this);
+                let withdrawalId = input.data("id");
+                let remarks = input.val();
+
+                // AJAX request to update the database
+                $.ajax({
+                    url: "controls/update_remarks.php",
+                    type: "POST",
+                    data: {
+                        withdrawal_id: withdrawalId,
+                        remarks: remarks
+                    },
+                    success: function(response) {
+                        alert(response); // Log success message or handle UI update
+                    },
+                    error: function() {
+                        alert("Failed to update remarks.");
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function() {
+            function toggleSaveButton() {
+                let allValid = true; // Assume all rows are valid initially
+
+                $(".dataTables-withdrawal-issuance tbody tr").each(function() {
+                    let issuanceQty = parseFloat($(this).find(".issuance-input").val()) || 0;
+
+                    // If any row has requisitionQty = 0 or empty, disable the button
+                    if (issuanceQty === 0) {
+                        allValid = false;
+                        return false; // Stop checking further rows
+                    }
+                });
+
+                // Disable button if any row has requisitionQty = 0
+                $("#saveWithdrawalBtn").toggleClass("disabled", !allValid);
+            }
+
+            // Run check when the page loads
+            toggleSaveButton();
+
+            // Event: When requisition input value changes dynamically
+            $(document).on("input", ".issuance-input", function() {
+                toggleSaveButton();
+            });
+
+            // Ensure check after DataTable loads (if using AJAX)
+            setTimeout(toggleSaveButton, 1000);
         });
 
     </script>
